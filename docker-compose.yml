@@ -1,0 +1,35 @@
+services:
+
+  # ── FastAPI backend (LangGraph + Groq + RAG) ────────────────────────────────
+  backend:
+    build:
+      context: .
+      target: app         # shared image, built once
+    image: chatbot-app    # name the image so frontend reuses it
+    container_name: chatbot-backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env                
+    volumes:
+      - fastembed_cache:/root/.cache/fastembed
+    restart: unless-stopped
+
+  # ── Streamlit frontend ──────────────────────────────────────────────────────
+  frontend:
+    image: chatbot-app    # reuse the same image — no second pip install
+    container_name: chatbot-frontend
+    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  fastembed_cache:
+
+

@@ -15,9 +15,9 @@ RUN groupadd --gid 1000 appuser && \
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies if needed (none currently)
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better layer caching
 COPY requirements.txt .
@@ -37,6 +37,9 @@ USER appuser
 
 # Expose ports (used by services in docker-compose)
 EXPOSE 8000 8501
+
+# Default command: run FastAPI backend (overridden for frontend in ECS/compose)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # Default command (overridden in docker-compose.yml)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

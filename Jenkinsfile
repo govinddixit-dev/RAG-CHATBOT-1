@@ -25,7 +25,7 @@ pipeline {
 		ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 		IMAGE_URI = "${ECR_REGISTRY}/${ECR_REPO}"
 		ECS_CLUSTER = 'rag-bot-cluster'
-		ECS_SERVICE = 'rag-bot-llm-service-bopqdqbt'
+		ECS_SERVICE = 'rag-bot-llm-service-ztezkdzy'
 		ECS_TASK_FAMILY = 'rag-bot-llm'
 	}
 

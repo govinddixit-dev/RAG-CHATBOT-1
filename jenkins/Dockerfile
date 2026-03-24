@@ -23,7 +23,7 @@ RUN apt-get update && \
         https://download.docker.com/linux/debian bookworm stable" | \
         tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
-    apt-get install -y --no-install-recommends docker-ce-cli && \
+    apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
     # ── AWS CLI v2 ──────────────────────────────────────────────────
     curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip && \
     unzip -q awscliv2.zip && \

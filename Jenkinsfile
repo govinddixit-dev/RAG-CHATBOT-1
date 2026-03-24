@@ -30,7 +30,7 @@ pipeline {
 					extensions: [],
 					userRemoteConfigs: [[
 						credentialsId: 'github-token',
-						url: 'https://github.com/govinddixit-dev/RAG-CHATBOT.git'
+						url: 'https://github.com/govinddixit-dev/RAG-CHATBOT-1.git'
 					]]
 				)
 			}
@@ -38,7 +38,7 @@ pipeline {
 
 		stage('Build Image') {
 			steps {
-				sh 'docker compose build --pull'
+				sh 'docker compose build'
 			}
 		}
 

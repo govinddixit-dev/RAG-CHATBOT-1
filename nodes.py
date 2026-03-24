@@ -1,4 +1,4 @@
-from llm import llm
+from llm import get_llm
 import rag
 
 
@@ -38,7 +38,7 @@ def chatbot_node(state):
     else:
         messages = [{"role": "system", "content": "You are a helpful assistant."}] + messages
 
-    response = llm.invoke(messages)
+    response = get_llm().invoke(messages)
     return {
         "messages": state["messages"] + [
             {"role": "assistant", "content": response.content}

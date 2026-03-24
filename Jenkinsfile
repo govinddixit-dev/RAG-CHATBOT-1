@@ -11,6 +11,7 @@ pipeline {
 	parameters {
 		booleanParam(name: 'RUN_SMOKE_TEST', defaultValue: true, description: 'Start backend container and check /health endpoint')
 		booleanParam(name: 'PUSH_IMAGE', defaultValue: true, description: 'Push Docker image to AWS ECR')
+		booleanParam(name: 'DEPLOY_TO_ECS', defaultValue: true, description: 'Deploy new image to ECS Fargate')
 	}
 
 	environment {
@@ -23,6 +24,9 @@ pipeline {
 		ECR_REPO = 'rag-bot-ecr'
 		ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 		IMAGE_URI = "${ECR_REGISTRY}/${ECR_REPO}"
+		ECS_CLUSTER = 'rag-bot-cluster'
+		ECS_SERVICE = 'rag-bot-llm-service-bopqdqbt'
+		ECS_TASK_FAMILY = 'rag-bot-llm'
 	}
 
 	stages {
@@ -100,6 +104,52 @@ pipeline {
 						aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 						docker push ${IMAGE_URI}:${IMAGE_TAG}
 						docker push ${IMAGE_URI}:latest
+					'''
+				}
+			}
+		}
+
+		stage('Deploy to ECS Fargate') {
+			when {
+				expression { return params.DEPLOY_TO_ECS }
+			}
+			steps {
+				withCredentials([[
+					$class: 'AmazonWebServicesCredentialsBinding',
+					credentialsId: 'aws-token'
+				]]) {
+					sh '''
+						set -e
+
+						# Get current task definition
+						TASK_DEF=$(aws ecs describe-task-definition \
+							--task-definition ${ECS_TASK_FAMILY} \
+							--region ${AWS_REGION} \
+							--query 'taskDefinition' --output json)
+
+						# Update all container images to new tag
+						NEW_TASK_DEF=$(echo "$TASK_DEF" | \
+							jq --arg IMG "${IMAGE_URI}:${IMAGE_TAG}" \
+							'.containerDefinitions |= map(.image = $IMG)' | \
+							jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+
+						# Register new task definition revision
+						NEW_REVISION=$(aws ecs register-task-definition \
+							--region ${AWS_REGION} \
+							--cli-input-json "$NEW_TASK_DEF" \
+							--query 'taskDefinition.taskDefinitionArn' --output text)
+
+						echo "Registered new task definition: $NEW_REVISION"
+
+						# Update ECS service to use new revision
+						aws ecs update-service \
+							--cluster ${ECS_CLUSTER} \
+							--service ${ECS_SERVICE} \
+							--task-definition "$NEW_REVISION" \
+							--force-new-deployment \
+							--region ${AWS_REGION}
+
+						echo "ECS service updated. Rolling deployment in progress."
 					'''
 				}
 			}

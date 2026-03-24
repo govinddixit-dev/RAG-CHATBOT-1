@@ -7,8 +7,15 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 
-_embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
+_embeddings = None
 _vector_store: Optional[FAISS] = None
+
+
+def _get_embeddings():
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
+    return _embeddings
 
 
 def ingest_pdf(file_bytes: bytes) -> int:
@@ -22,8 +29,9 @@ def ingest_pdf(file_bytes: bytes) -> int:
     if not chunks:
         return 0
 
+    embeddings = _get_embeddings()
     if _vector_store is None:
-        _vector_store = FAISS.from_texts(chunks, _embeddings)
+        _vector_store = FAISS.from_texts(chunks, embeddings)
     else:
         _vector_store.add_texts(chunks)
 

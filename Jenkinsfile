@@ -54,7 +54,7 @@ pipeline {
 					set -e
 					GROQ_API_KEY=gsk_test_dummy_key docker compose up -d backend
 					for i in $(seq 1 15); do
-						if curl -fsS http://localhost:8000/health; then
+						if docker exec chatbot-backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"; then
 							echo "Health check passed on attempt $i"
 							exit 0
 						fi

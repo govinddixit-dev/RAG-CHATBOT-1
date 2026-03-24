@@ -54,21 +54,23 @@ pipeline {
 				expression { return params.RUN_SMOKE_TEST }
 			}
 			steps {
-				sh '''
-					set -e
-					GROQ_API_KEY=gsk_test_dummy_key docker compose up -d backend
-					for i in $(seq 1 15); do
-						if docker exec chatbot-backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"; then
-							echo "Health check passed on attempt $i"
-							exit 0
-						fi
-						echo "Attempt $i failed, retrying in 2s..."
-						sleep 2
-					done
-					echo "Health check failed after 15 attempts"
-					docker compose logs backend
-					exit 1
-				'''
+				withCredentials([string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')]) {
+					sh '''
+						set -e
+						GROQ_API_KEY=${GROQ_API_KEY} docker compose up -d backend
+						for i in $(seq 1 15); do
+							if docker exec chatbot-backend python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"; then
+								echo "Health check passed on attempt $i"
+								exit 0
+							fi
+							echo "Attempt $i failed, retrying in 2s..."
+							sleep 2
+						done
+						echo "Health check failed after 15 attempts"
+						docker compose logs backend
+						exit 1
+					'''
+				}
 			}
 			post {
 				always {

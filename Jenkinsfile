@@ -49,19 +49,24 @@ pipeline {
 			steps {
 				sh '''
 					set -e
-					docker compose up -d backend
-					# Wait for the container to start
-					sleep 10
-					# Run health check inside the backend container (curl not available, use python)
-					docker exec chatbot-backend python3 -c "
-import urllib.request, sys
-try:
-    res = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=10)
-    print('Health check passed:', res.read().decode())
-except Exception as e:
-    print('Health check failed:', e)
-    sys.exit(1)
-"
+					# Pass a dummy key so the app can start (no real LLM calls in smoke test)
+					GROQ_API_KEY=gsk_test_dummy_key docker compose up -d backend
+					# Retry health check up to 30 seconds
+					for i in $(seq 1 15); do
+						if docker exec chatbot-backend python3 -c "
+import urllib.request
+res = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)
+print(res.read().decode())
+" 2>/dev/null; then
+							echo "Health check passed on attempt $i"
+							exit 0
+						fi
+						echo "Attempt $i: backend not ready, retrying in 2s..."
+						sleep 2
+					done
+					echo "Health check failed after 30s. Container logs:"
+					docker logs chatbot-backend --tail 50
+					exit 1
 				'''
 			}
 			post {

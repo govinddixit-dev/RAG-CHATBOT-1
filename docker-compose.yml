@@ -13,7 +13,7 @@ services:
     env_file:
       - .env                
     volumes:
-      - fastembed_cache:/root/.cache/fastembed
+      - fastembed_cache:/home/appuser/.cache/fastembed
     restart: unless-stopped
 
   # ── Streamlit frontend ──────────────────────────────────────────────────────

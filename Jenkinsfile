@@ -50,9 +50,18 @@ pipeline {
 				sh '''
 					set -e
 					docker compose up -d backend
-					# Give app a few seconds to boot
-					sleep 8
-					curl -fsS http://localhost:8000/health
+					# Wait for the container to start
+					sleep 10
+					# Run health check inside the backend container (curl not available, use python)
+					docker exec chatbot-backend python3 -c "
+import urllib.request, sys
+try:
+    res = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=10)
+    print('Health check passed:', res.read().decode())
+except Exception as e:
+    print('Health check failed:', e)
+    sys.exit(1)
+"
 				'''
 			}
 			post {

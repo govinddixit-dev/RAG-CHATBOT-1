@@ -30,7 +30,7 @@ pipeline {
 					extensions: [],
 					userRemoteConfigs: [[
 						credentialsId: 'github-token',
-						url: 'https://github.com/govinddixit-dev/RAG-CHATBOT-1.git'
+						url: 'https://github.com/govinddixit-dev/RAG-CHATBOT.git'
 					]]
 				)
 			}

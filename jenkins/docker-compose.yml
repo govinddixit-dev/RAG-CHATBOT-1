@@ -1,0 +1,48 @@
+services:
+
+  # ── Docker-in-Docker daemon (privileged sidecar) ────────────────────────────
+  dind:
+    image: docker:dind
+    container_name: jenkins-dind
+    privileged: true
+    restart: unless-stopped
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home
+    networks:
+      jenkins-net:
+        aliases:
+          - docker            # Jenkins connects to host "docker"
+    command: --storage-driver overlay2
+
+  # ── Jenkins ─────────────────────────────────────────────────────────────────
+  jenkins:
+    build:
+      context: .
+    image: jenkins-aws
+    container_name: jenkins
+    restart: unless-stopped
+    environment:
+      - DOCKER_HOST=tcp://docker:2376         # talk to dind over TLS
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
+    volumes:
+      - jenkins-data:/var/jenkins_home        # persist Jenkins home
+      - jenkins-docker-certs:/certs/client:ro # TLS certs from dind (read-only)
+    ports:
+      - "8080:8080"   # Jenkins web UI
+      - "50000:50000" # Jenkins agent JNLP port
+    depends_on:
+      - dind
+    networks:
+      - jenkins-net
+
+networks:
+  jenkins-net:
+    driver: bridge
+
+volumes:
+  jenkins-data:         # Jenkins home (jobs, configs, plugins)
+  jenkins-docker-certs: # TLS certs shared between dind and jenkins

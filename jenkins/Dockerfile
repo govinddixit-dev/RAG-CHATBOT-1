@@ -4,27 +4,40 @@ FROM jenkins/jenkins:lts
 # Switch to root to install additional packages
 USER root
 
-# Install AWS CLI v2
+# Install Docker CLI (official Docker repo) + AWS CLI v2 in a single layer
 RUN apt-get update && \
-    apt-get install -y curl unzip && \
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        unzip \
+        gnupg \
+        python3 \
+        python3-pip \
+        python3-venv && \
+    # ── Docker CLI ──────────────────────────────────────────────────
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | \
+        gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    chmod a+r /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+        https://download.docker.com/linux/debian bookworm stable" | \
+        tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends docker-ce-cli && \
+    # ── AWS CLI v2 ──────────────────────────────────────────────────
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip && \
+    unzip -q awscliv2.zip && \
     ./aws/install && \
     rm -rf awscliv2.zip aws && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Docker CLI (for Docker-in-Docker if needed)
-RUN apt-get update && \
-    apt-get install -y docker.io && \
+    # ── Cleanup ─────────────────────────────────────────────────────
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Switch back to Jenkins user
 USER jenkins
 
-# Expose Jenkins port
-EXPOSE 8080
+# Expose Jenkins web UI + agent port
+EXPOSE 8080 50000
 
 # Default command
 CMD ["jenkins.sh"]

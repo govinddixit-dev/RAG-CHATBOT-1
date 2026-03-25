@@ -60,3 +60,6 @@ def chat(req: ChatRequest):
         return {"response": result["messages"][-1]["content"]}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+print("🚀 FastAPI backend is ready to serve requests.")

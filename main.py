@@ -61,3 +61,4 @@ def chat(req: ChatRequest):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
+print("API ready at http://localhost:8000")
